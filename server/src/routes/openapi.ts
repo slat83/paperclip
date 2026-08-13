@@ -226,6 +226,9 @@ import {
   createToolMcpGatewaySchema,
   startClaudeSetupTokenSessionRequestSchema,
   submitBrowserCodeRequestSchema,
+  claudeSetupTokenSessionResponseSchema,
+  claudeSetupTokenSessionPromptSchema,
+  claudeSetupTokenSessionOwnerResponseSchema,
   claudeSetupTokenCompletionResponseSchema,
 } from "@paperclipai/shared";
 import {
@@ -388,6 +391,10 @@ function zodToOpenApiSchema(schema: z.ZodTypeAny): JsonSchema {
     }
     const jsonSchema: JsonSchema = { type: "object", properties };
     if (required.length > 0) jsonSchema.required = required;
+    // A `.strict()` Zod object forbids an unknown key. Publish that constraint
+    // as `additionalProperties: false`, so a client, a gateway, or a handler
+    // that treats the contract as authoritative rejects an extra property too.
+    if (unwrapped._def.unknownKeys === "strict") jsonSchema.additionalProperties = false;
     return jsonSchema;
   }
 
@@ -4603,7 +4610,7 @@ registry.registerPath({
     body: jsonBody(startClaudeSetupTokenSessionRequestSchema),
   },
   responses: {
-    201: r.ok(),
+    201: r.ok(claudeSetupTokenSessionOwnerResponseSchema),
     400: r.badRequest,
     401: r.unauthorized,
     403: r.forbidden,
@@ -4619,7 +4626,7 @@ registry.registerPath({
   summary: "Read the status of a Claude setup-token login session",
   request: { params: z.object({ companyId: z.string(), sessionId: z.string() }) },
   responses: {
-    200: r.ok(),
+    200: r.ok(claudeSetupTokenSessionResponseSchema),
     401: r.unauthorized,
     403: r.forbidden,
     404: r.notFound,
@@ -4633,7 +4640,7 @@ registry.registerPath({
   summary: "Read the login prompt for a Claude setup-token login session",
   request: { params: z.object({ companyId: z.string(), sessionId: z.string() }) },
   responses: {
-    200: r.ok(),
+    200: r.ok(claudeSetupTokenSessionPromptSchema),
     400: r.badRequest,
     401: r.unauthorized,
     403: r.forbidden,
@@ -4651,7 +4658,7 @@ registry.registerPath({
     body: jsonBody(submitBrowserCodeRequestSchema),
   },
   responses: {
-    200: r.ok(),
+    200: r.ok(claudeSetupTokenSessionResponseSchema),
     400: r.badRequest,
     401: r.unauthorized,
     403: r.forbidden,
